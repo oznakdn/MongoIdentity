@@ -21,6 +21,7 @@ public sealed class MongoUserManager<TUser>
         var mongoDatabase = mongoClient.GetDatabase(option.DatabaseName);
         MongoUser = mongoDatabase.GetCollection<TUser>("Users");
         UserToken = mongoDatabase.GetCollection<UserToken>("UserTokens");
+
         if (jwtOption is not null)
             _jwtHelper = new JwtHelper<TUser>(jwtOption);
     }
@@ -60,7 +61,7 @@ public sealed class MongoUserManager<TUser>
 
         if (existUser is null)
         {
-            return Result<SignInResult>.Failure(message: "User not found!");
+            return Result<SignInResult>.Failure(message: "Invalid Login Credentials");
 
         }
 
@@ -68,7 +69,7 @@ public sealed class MongoUserManager<TUser>
 
         if (!verifyPassword)
         {
-            return Result<SignInResult>.Failure(message: "Invalid password!");
+            return Result<SignInResult>.Failure(message: "Invalid Login Credentials!");
 
         }
 
@@ -116,10 +117,10 @@ public sealed class MongoUserManager<TUser>
             }
 
 
-            return Result<SignInResult>.Success(data: result);
+            return Result<SignInResult>.Success(data: result,message: "Login Successful");
         }
 
-        return Result<SignInResult>.Success(data: null);
+        return Result<SignInResult>.Success(data: null,message: "Login Successful");
 
 
     }
