@@ -30,5 +30,23 @@ public sealed class MongoRoleManager<TRole>
         return Result<TRole>.Success(role);
     }
 
+    public async Task<IResult> UpdateAsync(TRole role, CancellationToken cancellationToken = default)
+    {
+        if(string.IsNullOrWhiteSpace(role.Id))
+        {
+            return Result<TRole>.Failure(message: "Id is required!");
+        }
+
+        var existRole = await Role.Find(x => x.Id == role.Id).SingleOrDefaultAsync(cancellationToken);
+    
+        if (existRole is null)
+            return Result<TRole>.Failure(message: "Role not found");
+
+        existRole.RoleName = role.RoleName ?? existRole.RoleName;
+        existRole.Description = role.Description ?? existRole.Description;
+        await Role.ReplaceOneAsync(x => x.Id == role.Id, existRole, cancellationToken: cancellationToken);
+        return Result<TRole>.Success(existRole, message: "Role updated successfully");
+    }
+
 
 }
