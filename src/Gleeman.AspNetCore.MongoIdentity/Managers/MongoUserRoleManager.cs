@@ -94,6 +94,40 @@ public class MongoUserRoleManager<TUser, TRole>
     }
 
 
+    public async Task<IResult<IEnumerable<string>>>GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken = default)
+    {
+
+        if(string.IsNullOrWhiteSpace(roleName))
+            return Result<IEnumerable<string>>.Failure(message: "Role name is required!");
+
+        var existRole = await Role.Find(x => x.RoleName == roleName).SingleOrDefaultAsync(cancellationToken);
+
+        if (existRole is null)
+            return Result<IEnumerable<string>>.Failure(message: "Role not found!");
+
+
+        var userRoles = await UserRole
+            .Find(x => x.RoleId == existRole.Id)
+            .ToListAsync(cancellationToken);
+
+
+        var users = new List<string>();
+
+        userRoles.ForEach(role =>
+        {
+            var user = User
+                .Find(x => x.Id == role.UserId)
+                .SingleOrDefault();
+
+            if(user is not null)
+            {
+                users.Add(user.EmailAddress);
+            }
+        });
+
+
+        return Result<IEnumerable<string>>.Success(users);
+    }
 
 }
 
