@@ -10,7 +10,7 @@ namespace Gleeman.AspNetCore.MongoIdentity;
 
 public static class ServiceConfiguration
 {
-    public static void AddMongoIdentity(this IServiceCollection services, Action<MongoOption> option, Action<JwtOption> jwtOption = null)
+    public static IServiceCollection AddMongoIdentity(this IServiceCollection services, Action<MongoOption> option)
     {
         services.AddSingleton<MongoOption>(sp =>
         {
@@ -18,7 +18,15 @@ public static class ServiceConfiguration
             return sp.GetRequiredService<IOptions<MongoOption>>().Value;
         });
 
+        services.AddScoped(typeof(MongoUserManager<>));
+        services.AddScoped(typeof(MongoRoleManager<>));
 
+        return services;
+
+    }
+
+    public static IServiceCollection AddJwt(this IServiceCollection services, Action<JwtOption> jwtOption)
+    {
         JwtOption _jwtOption = new();
         if (jwtOption != null)
         {
@@ -51,10 +59,7 @@ public static class ServiceConfiguration
             };
         });
 
-
-        services.AddScoped(typeof(MongoUserManager<>));
-        services.AddScoped(typeof(MongoRoleManager<>));
-
+        return services;
     }
 
 }

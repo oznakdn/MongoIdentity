@@ -12,15 +12,17 @@ public sealed class MongoUserManager<TUser>
     private IMongoCollection<TUser> MongoUser { get; }
     private IMongoCollection<UserToken> UserToken { get; }
 
+
     private readonly JwtHelper<TUser> _jwtHelper;
 
-    public MongoUserManager(MongoOption option, JwtOption jwtOption)
+    public MongoUserManager(MongoOption option, JwtOption? jwtOption = null)
     {
         var mongoClient = new MongoClient(option.ConnectionString);
         var mongoDatabase = mongoClient.GetDatabase(option.DatabaseName);
         MongoUser = mongoDatabase.GetCollection<TUser>("Users");
         UserToken = mongoDatabase.GetCollection<UserToken>("UserTokens");
-        _jwtHelper = new JwtHelper<TUser>(jwtOption);
+        if (jwtOption is not null)
+            _jwtHelper = new JwtHelper<TUser>(jwtOption);
     }
 
     public async Task<IResult> SignUpAsync(TUser user, CancellationToken cancellationToken = default)
@@ -70,48 +72,55 @@ public sealed class MongoUserManager<TUser>
 
         }
 
-        var result = new SignInResult
+
+        if (_jwtHelper is not null)
         {
-            Token = new Token
+            var result = new SignInResult
             {
-                AccessToken = _jwtHelper.GenerateToken(existUser),
-                AccessExp = DateTime.Now.AddMinutes(10),
-                RefreshToken = _jwtHelper.GenerateRefreshToken(),
-                RefreshExp = DateTime.Now.AddMinutes(15)
-            }
-        };
-
-
-        var existUserToken = await UserToken
-            .Find(x => x.UserId == existUser.Id)
-            .SingleOrDefaultAsync(cancellationToken);
-
-        if (existUserToken is not null)
-        {
-
-            existUserToken.Access = result.Token.AccessToken;
-            existUserToken.AccessExp = result.Token.AccessExp;
-            existUserToken.Refresh = result.Token.RefreshToken;
-            existUserToken.RefreshExp = result.Token.RefreshExp;
-
-            await UserToken.FindOneAndReplaceAsync(x => x.UserId == existUser.Id, existUserToken);
-
-        }
-        else
-        {
-            await UserToken
-                .InsertOneAsync(new UserToken
+                Token = new Token
                 {
-                    UserId = existUser.Id,
-                    Access = result.Token.AccessToken,
-                    AccessExp = result.Token.AccessExp,
-                    Refresh = result.Token.RefreshToken,
-                    RefreshExp = result.Token.RefreshExp
-                }, cancellationToken: cancellationToken);
+                    AccessToken = _jwtHelper.GenerateToken(existUser),
+                    AccessExp = DateTime.Now.AddMinutes(10),
+                    RefreshToken = _jwtHelper.GenerateRefreshToken(),
+                    RefreshExp = DateTime.Now.AddMinutes(15)
+                }
+            };
+
+
+            var existUserToken = await UserToken
+                .Find(x => x.UserId == existUser.Id)
+                .SingleOrDefaultAsync(cancellationToken);
+
+            if (existUserToken is not null)
+            {
+
+                existUserToken.Access = result.Token.AccessToken;
+                existUserToken.AccessExp = result.Token.AccessExp;
+                existUserToken.Refresh = result.Token.RefreshToken;
+                existUserToken.RefreshExp = result.Token.RefreshExp;
+
+                await UserToken.FindOneAndReplaceAsync(x => x.UserId == existUser.Id, existUserToken);
+
+            }
+            else
+            {
+                await UserToken
+                    .InsertOneAsync(new UserToken
+                    {
+                        UserId = existUser.Id,
+                        Access = result.Token.AccessToken,
+                        AccessExp = result.Token.AccessExp,
+                        Refresh = result.Token.RefreshToken,
+                        RefreshExp = result.Token.RefreshExp
+                    }, cancellationToken: cancellationToken);
+            }
+
+
+            return Result<SignInResult>.Success(data: result);
         }
 
+        return Result<SignInResult>.Success(data: null);
 
-        return Result<SignInResult>.Success(data: result);
 
     }
 
@@ -121,7 +130,7 @@ public sealed class MongoUserManager<TUser>
             .Find(x => x.Refresh == refreshToken)
             .SingleOrDefaultAsync();
 
-        if(userToken is null)
+        if (userToken is null)
         {
             return Result.Failure("User not found!");
         }
