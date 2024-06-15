@@ -158,4 +158,14 @@ public sealed class MongoUserManager<TUser>
         return Result<TUser>.Success(user);
     }
 
+    public async Task<IResult<IEnumerable<TUser>>>GetUsersAsync(CancellationToken cancellationToken = default)
+    {
+        var users = await User
+            .Find(_ => true)
+            .ToListAsync(cancellationToken);
+
+        return Result<IEnumerable<TUser>>.Success(users);
+    }
+
+
 }
