@@ -10,11 +10,12 @@ builder.Services.AddMongoIdentity(opt =>
 {
     opt.ConnectionString = "mongodb://localhost:27017";
     opt.DatabaseName = "ExampleDB";
-}, jwt =>
+
+}).AddJwt(opt =>
 {
-    jwt.SecretKey = "f5bf2a7a-c397-4ef9-9bec-bd1255d7b26e";
-    jwt.Audience = "this is audience";
-    jwt.Issuer = "this is issuer";
+    opt.SecretKey = "f5bf2a7a-c397-4ef9-9bec-bd1255d7b26e";
+    opt.Audience = "this is audience";
+    opt.Issuer = "this is issuer";
 });
 
 var app = builder.Build();
