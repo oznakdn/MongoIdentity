@@ -9,8 +9,9 @@ namespace Gleeman.AspNetCore.MongoIdentity.Managers;
 public sealed class MongoUserManager<TUser>
     where TUser : MongoIdentityUser
 {
-    private IMongoCollection<TUser> MongoUser { get; }
-    private IMongoCollection<UserToken> UserToken { get; }
+    private IMongoCollection<TUser> User { get; }
+    private IMongoCollection<UserToken>UserToken { get; }
+    private IMongoCollection<UserRole> Role { get; }
 
 
     private readonly JwtHelper<TUser> _jwtHelper;
@@ -19,8 +20,9 @@ public sealed class MongoUserManager<TUser>
     {
         var mongoClient = new MongoClient(option.ConnectionString);
         var mongoDatabase = mongoClient.GetDatabase(option.DatabaseName);
-        MongoUser = mongoDatabase.GetCollection<TUser>("Users");
-        UserToken = mongoDatabase.GetCollection<UserToken>("UserTokens");
+        User = mongoDatabase.GetCollection<TUser>(nameof(User));
+        UserToken = mongoDatabase.GetCollection<UserToken>(nameof(UserToken));
+        Role = mongoDatabase.GetCollection<UserRole>(nameof(Role));
 
         if (jwtOption is not null)
             _jwtHelper = new JwtHelper<TUser>(jwtOption);
@@ -44,20 +46,20 @@ public sealed class MongoUserManager<TUser>
             return Result.Failure(errors: erros);
         }
 
-        var existUser = await MongoUser.Find(x => x.EmailAddress == user.EmailAddress).SingleOrDefaultAsync(cancellationToken);
+        var existUser = await User.Find(x => x.EmailAddress == user.EmailAddress).SingleOrDefaultAsync(cancellationToken);
         if (existUser is not null)
         {
             return Result.Failure("User already exists!");
         }
 
         user.HashedPassword = user.HashedPassword.HashPassword();
-        await MongoUser.InsertOneAsync(user, cancellationToken: cancellationToken);
+        await User.InsertOneAsync(user, cancellationToken: cancellationToken);
         return Result<TUser>.Success(user);
     }
 
     public async Task<Result<SignInResult>> SignInAsync(string email, string password, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var existUser = await MongoUser.Find<TUser>(x => x.EmailAddress == email).SingleOrDefaultAsync(cancellationToken);
+        var existUser = await User.Find<TUser>(x => x.EmailAddress == email).SingleOrDefaultAsync(cancellationToken);
 
         if (existUser is null)
         {
@@ -117,10 +119,10 @@ public sealed class MongoUserManager<TUser>
             }
 
 
-            return Result<SignInResult>.Success(data: result,message: "Login Successful");
+            return Result<SignInResult>.Success(data: result, message: "Login Successful");
         }
 
-        return Result<SignInResult>.Success(data: null,message: "Login Successful");
+        return Result<SignInResult>.Success(data: null, message: "Login Successful");
 
 
     }
@@ -128,7 +130,7 @@ public sealed class MongoUserManager<TUser>
     public async Task<IResult> SignOutAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         var userToken = await UserToken
-            .Find(x => x.Refresh == refreshToken)
+            .Find(x=> x.Refresh == refreshToken)
             .SingleOrDefaultAsync();
 
         if (userToken is null)
@@ -140,6 +142,20 @@ public sealed class MongoUserManager<TUser>
              .FindOneAndDeleteAsync(x => x.Refresh == refreshToken, cancellationToken: cancellationToken);
 
         return Result.Success();
+    }
+
+    public async Task<IResult<TUser>> GetUserAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var user = await User
+            .Find(x => x.EmailAddress == email)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if(user is null)
+        {
+            return Result<TUser>.Failure(message: "User not found!");
+        }
+
+        return Result<TUser>.Success(user);
     }
 
 }
