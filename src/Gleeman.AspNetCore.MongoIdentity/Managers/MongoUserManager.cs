@@ -115,6 +115,21 @@ public sealed class MongoUserManager<TUser>
 
     }
 
+    public async Task<IResult> SignOutAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        var userToken = await UserToken
+            .Find(x => x.Refresh == refreshToken)
+            .SingleOrDefaultAsync();
 
+        if(userToken is null)
+        {
+            return Result.Failure("User not found!");
+        }
+
+        await UserToken
+             .FindOneAndDeleteAsync(x => x.Refresh == refreshToken, cancellationToken: cancellationToken);
+
+        return Result.Success();
+    }
 
 }

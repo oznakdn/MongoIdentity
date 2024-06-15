@@ -2,7 +2,7 @@
 
 namespace Gleeman.AspNetCore.MongoIdentity.Models;
 
-public abstract class MongoIdentityUser
+public class MongoIdentityUser
 {
     [BsonId]
     [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]

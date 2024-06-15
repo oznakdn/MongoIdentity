@@ -53,6 +53,7 @@ public static class ServiceConfiguration
 
 
         services.AddScoped(typeof(MongoUserManager<>));
+        services.AddScoped(typeof(MongoRoleManager<>));
 
     }
 
