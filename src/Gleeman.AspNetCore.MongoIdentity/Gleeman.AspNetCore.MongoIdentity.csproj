@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Title>MongoIdentity</Title>
-    <Version>8.0.1</Version>
+    <Version>8.0.2</Version>
     <Authors>oznakdn</Authors>
     <Company>oznakdn</Company>
     <Description>Identity management for mongo db</Description>
