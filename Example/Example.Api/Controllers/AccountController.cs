@@ -2,6 +2,7 @@
 using Example.Api.Models;
 using Gleeman.AspNetCore.MongoIdentity.Managers;
 using Gleeman.AspNetCore.MongoIdentity.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Example.Api.Controllers;
@@ -44,6 +45,7 @@ public class AccountController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles ="owner")]
     public async Task<IActionResult> GetRoles(CancellationToken cancellationToken)
     {
         var result = await _roleManager.GetRolesAsync(cancellationToken);

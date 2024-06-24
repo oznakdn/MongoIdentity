@@ -29,16 +29,15 @@ public static class ServiceConfiguration
 
     public static IServiceCollection AddJwt(this IServiceCollection services, Action<JwtOption> jwtOption)
     {
-        JwtOption _jwtOption = new();
-        if (jwtOption != null)
+
+        JwtOption _jwtOption = new JwtOption();
+        jwtOption.Invoke(_jwtOption);
+
+        services.AddSingleton(sp =>
         {
-            services.AddSingleton<JwtOption>(sp =>
-            {
-                _jwtOption = sp.GetRequiredService<IOptions<JwtOption>>().Value;
-                jwtOption.Invoke(_jwtOption);
-                return _jwtOption;
-            });
-        }
+            return _jwtOption;
+        });
+
 
         services.AddAuthentication(scheme =>
         {
@@ -52,7 +51,6 @@ public static class ServiceConfiguration
                 ValidateAudience = _jwtOption.Audience is null ? false : true,
                 ValidateIssuer = _jwtOption.Issuer is null ? false : true,
                 ValidateIssuerSigningKey = _jwtOption.SecretKey is null ? false : true,
-
                 ValidAudience = _jwtOption.Audience,
                 ValidIssuer = _jwtOption.Issuer,
                 IssuerSigningKey = _jwtOption.SecretKey is null ? null : new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOption.SecretKey)),
