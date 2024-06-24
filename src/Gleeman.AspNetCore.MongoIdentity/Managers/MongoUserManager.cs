@@ -10,7 +10,7 @@ public sealed class MongoUserManager<TUser>
     where TUser : MongoIdentityUser
 {
     private IMongoCollection<TUser> User { get; }
-    private IMongoCollection<UserToken>UserToken { get; }
+    private IMongoCollection<UserToken> UserToken { get; }
     private IMongoCollection<UserRole> Role { get; }
 
 
@@ -25,7 +25,7 @@ public sealed class MongoUserManager<TUser>
         Role = mongoDatabase.GetCollection<UserRole>(nameof(Role));
 
         if (jwtOption is not null)
-            _jwtHelper = new JwtHelper<TUser>(jwtOption);
+            _jwtHelper = new JwtHelper<TUser>(jwtOption, option);
     }
 
     public async Task<IResult> SignUpAsync(TUser user, CancellationToken cancellationToken = default)
@@ -54,7 +54,7 @@ public sealed class MongoUserManager<TUser>
 
         user.HashedPassword = user.HashedPassword.HashPassword();
         await User.InsertOneAsync(user, cancellationToken: cancellationToken);
-        return Result<TUser>.Success(user);
+        return Result.Success(message:"User created successfully!");
     }
 
     public async Task<Result<SignInResult>> SignInAsync(string email, string password, CancellationToken cancellationToken = default(CancellationToken))
@@ -82,7 +82,7 @@ public sealed class MongoUserManager<TUser>
             {
                 Token = new Token
                 {
-                    AccessToken = _jwtHelper.GenerateToken(existUser),
+                    AccessToken = await _jwtHelper.GenerateToken(existUser),
                     AccessExp = DateTime.Now.AddMinutes(10),
                     RefreshToken = _jwtHelper.GenerateRefreshToken(),
                     RefreshExp = DateTime.Now.AddMinutes(15)
@@ -130,7 +130,7 @@ public sealed class MongoUserManager<TUser>
     public async Task<IResult> SignOutAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         var userToken = await UserToken
-            .Find(x=> x.Refresh == refreshToken)
+            .Find(x => x.Refresh == refreshToken)
             .SingleOrDefaultAsync();
 
         if (userToken is null)
@@ -150,7 +150,7 @@ public sealed class MongoUserManager<TUser>
             .Find(x => x.EmailAddress == email)
             .SingleOrDefaultAsync(cancellationToken);
 
-        if(user is null)
+        if (user is null)
         {
             return Result<TUser>.Failure(message: "User not found!");
         }
@@ -158,7 +158,7 @@ public sealed class MongoUserManager<TUser>
         return Result<TUser>.Success(user);
     }
 
-    public async Task<IResult<IEnumerable<TUser>>>GetUsersAsync(CancellationToken cancellationToken = default)
+    public async Task<IResult<IEnumerable<TUser>>> GetUsersAsync(CancellationToken cancellationToken = default)
     {
         var users = await User
             .Find(_ => true)

@@ -60,7 +60,6 @@ public class MongoUserRoleManager<TUser, TRole>
         return Result.Success("Role assigned successfully!");
     }
 
-
     public async Task<IResult> RemoveRoleFromUserAsync(TUser user, string roleName, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(roleName))
@@ -93,17 +92,17 @@ public class MongoUserRoleManager<TUser, TRole>
         return Result.Success("Role deleted from the user successfully!");
     }
 
-
-    public async Task<IResult<IEnumerable<string>>>GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken = default)
+    public async Task<IResult<IEnumerable<TUser>>>GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken = default)
     {
 
-        if(string.IsNullOrWhiteSpace(roleName))
-            return Result<IEnumerable<string>>.Failure(message: "Role name is required!");
+     
+        if (string.IsNullOrWhiteSpace(roleName))
+            return Result<IEnumerable<TUser>>.Failure(message: "Role name is required!");
 
         var existRole = await Role.Find(x => x.RoleName == roleName).SingleOrDefaultAsync(cancellationToken);
 
         if (existRole is null)
-            return Result<IEnumerable<string>>.Failure(message: "Role not found!");
+            return Result<IEnumerable<TUser>>.Failure(message: "Role not found!");
 
 
         var userRoles = await UserRole
@@ -111,7 +110,7 @@ public class MongoUserRoleManager<TUser, TRole>
             .ToListAsync(cancellationToken);
 
 
-        var users = new List<string>();
+        var users = new List<TUser>();
 
         userRoles.ForEach(role =>
         {
@@ -121,13 +120,57 @@ public class MongoUserRoleManager<TUser, TRole>
 
             if(user is not null)
             {
-                users.Add(user.EmailAddress);
+                users.Add(user);
             }
         });
 
 
-        return Result<IEnumerable<string>>.Success(users);
+        return Result<IEnumerable<TUser>>.Success(users);
     }
+
+    public async Task<IResult<bool>>GetUserInRoleAsync(string userId, string roleName , CancellationToken cancellationToken = default)
+    {
+        var erros = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(roleName))
+            erros.Add("Role name is required!");
+
+        if (string.IsNullOrWhiteSpace(userId))
+            erros.Add("User Id is required!");
+
+        if(erros.Count>0)
+            return Result<bool>.Failure(errors: erros);
+
+
+        var existRole = await Role.Find(x => x.RoleName == roleName).SingleOrDefaultAsync(cancellationToken);
+
+
+        if (existRole is null)
+            return Result<bool>.Failure(message: "Role not found!");
+
+
+        var existUser = await User
+            .Find(x => x.Id == userId)
+            .SingleOrDefaultAsync(cancellationToken);
+
+
+        if (existUser is null)
+            return Result<bool>.Failure(message: "User not found!");
+
+
+        var userRole = await UserRole
+            .Find(x => x.RoleId == existRole.Id && x.UserId == existUser.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+
+
+        if (userRole is null)
+            return Result<bool>.Failure(message: "User has no this role!");
+
+
+        return Result<bool>.Success(true);
+
+    }
+
 
 }
 

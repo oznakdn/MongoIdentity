@@ -145,4 +145,13 @@ public class AccountController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetUserInRole(string userId, string roleName, CancellationToken cancellationToken)
+    {
+        var result = await _userRoleManager.GetUserInRoleAsync(userId,roleName, cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(result.Message);
+        return Ok(result);
+    }
+
 }
